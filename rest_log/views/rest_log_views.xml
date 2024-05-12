@@ -31,13 +31,13 @@
                     <div
                         class="oe_button_box"
                         name="button_box"
-                        attrs="{'invisible': ['|', ('id','=',False), ('collection_id', '=', False)]}"
+                        invisible="id == False or collection_id == False"
                     >
                         <button
                             type="object"
                             name="action_view_collection"
                             icon="fa-eye"
-                            attrs="{'invisible': [('collection_id', '=', False)]}"
+                            invisible="collection_id == False"
                         >
                             View collection
                         </button>
@@ -60,7 +60,7 @@
                     <group
                         string="Result"
                         name="result"
-                        attrs="{'invisible': [('state', '!=', 'success')]}"
+                        invisible="state != 'success'"
                     >
                         <group>
                             <field name="result" nolabel="1" widget="ace" />
@@ -69,7 +69,7 @@
                     <group
                         string="Error"
                         name="error"
-                        attrs="{'invisible': [('state', '!=', 'failed')]}"
+                        invisible="state != 'failed'"
                     >
                         <group colspan="2">
                             <field name="exception_name" />
