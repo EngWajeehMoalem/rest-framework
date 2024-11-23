@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8" ?>
 <odoo noupdate="1">
     <record id="ir_cron_autovacuum_rest_log" model="ir.cron">
         <field name="name">Auto-vacuum REST Logs</field>

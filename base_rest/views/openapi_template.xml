@@ -1,6 +1,3 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<!-- Copyright 2017 ACSONE SA/NV
-     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
 <odoo>
     <template id="openapi" name="OpenAPI">
         <t t-call="web.layout">
