@@ -53,8 +53,8 @@
                         </group>
                     </group>
                     <group string="Parameters" name="parameters">
-                        <field name="params" widget="ace" />
-                        <field name="headers" widget="ace" />
+                        <field name="params"  />
+                        <field name="headers"  />
                     </group>
                     <group
                         string="Result"
@@ -62,7 +62,7 @@
                         invisible="state != 'success'"
                     >
                         <group>
-                            <field name="result" nolabel="1" widget="ace" />
+                            <field name="result" nolabel="1" />
                         </group>
                     </group>
                     <group
@@ -70,16 +70,15 @@
                         name="error"
                         invisible="state != 'failed'"
                     >
-                        <group colspan="2">
+                        <group colspan="8">
                             <field name="exception_name" />
                             <field name="exception_message" />
                             <field name="severity" />
                         </group>
-                        <group colspan="4">
+                        <group colspan="8">
                             <field
                                 name="error"
                                 nolabel="1"
-                                widget="ace"
                                 options="{'mode': 'python'}"
                             />
                         </group>
