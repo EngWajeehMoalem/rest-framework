@@ -14,6 +14,7 @@ from .tools import ROUTING_DECORATOR_ATTR, cerberus_to_json
 
 
 def method(routes, input_param=None, output_param=None, **kw):
+    kw.setdefault("cors", '*')
     """Decorator marking the decorated method as being a handler for
       REST requests. The method must be part of a component inheriting from
     ``base.rest.service``.
@@ -112,6 +113,7 @@ def method(routes, input_param=None, output_param=None, **kw):
 
 
 class RestMethodParam(abc.ABC):
+
     @abc.abstractmethod
     def from_params(self, service, params):
         """
@@ -153,6 +155,7 @@ class RestMethodParam(abc.ABC):
 
 
 class BinaryData(RestMethodParam):
+
     def __init__(self, mediatypes="*/*", required=False):
         if not isinstance(mediatypes, list):
             mediatypes = [mediatypes]
@@ -169,7 +172,9 @@ class BinaryData(RestMethodParam):
     @property
     def _binary_content_schema(self):
         return {
-            mediatype: {"schema": self.to_json_schema(None, None, None)}
+            mediatype: {
+                "schema": self.to_json_schema(None, None, None)
+            }
             for mediatype in self._mediatypes
         }
 
@@ -178,8 +183,7 @@ class BinaryData(RestMethodParam):
 
     def to_openapi_query_parameters(self, service, spec):
         raise NotImplementedError(
-            "BinaryData are not (?yet?) supported as query paramters"
-        )
+            "BinaryData are not (?yet?) supported as query paramters")
 
     def to_openapi_responses(self, service, spec):
         return {"200": {"content": self._binary_content_schema}}
@@ -194,7 +198,8 @@ class BinaryData(RestMethodParam):
         return params
 
     def _to_http_response(self, result):
-        mediatype = self._mediatypes[0] if len(self._mediatypes) == 1 else "*/*"
+        mediatype = self._mediatypes[0] if len(
+            self._mediatypes) == 1 else "*/*"
         headers = [
             ("Content-Type", mediatype),
             ("X-Content-Type-Options", "nosniff"),
@@ -205,6 +210,7 @@ class BinaryData(RestMethodParam):
 
 
 class CerberusValidator(RestMethodParam):
+
     def __init__(self, schema):
         """
 
@@ -261,7 +267,15 @@ class CerberusValidator(RestMethodParam):
 
     def to_openapi_responses(self, service, spec):
         json_schema = self.to_json_schema(service, spec, "output")
-        return {"200": {"content": {"application/json": {"schema": json_schema}}}}
+        return {
+            "200": {
+                "content": {
+                    "application/json": {
+                        "schema": json_schema
+                    }
+                }
+            }
+        }
 
     def get_cerberus_validator(self, service, direction):
         assert direction in ("input", "output")
@@ -269,13 +283,13 @@ class CerberusValidator(RestMethodParam):
         if isinstance(self._schema, str):
             validator_component = service.component(usage="cerberus.validator")
             schema = validator_component.get_validator_handler(
-                service, self._schema, direction
-            )()
+                service, self._schema, direction)()
         if isinstance(schema, Validator):
             return schema
         if isinstance(schema, dict):
             return Validator(schema, purge_unknown=True)
-        raise Exception(_("Unable to get cerberus schema from %s") % self._schema)
+        raise Exception(
+            _("Unable to get cerberus schema from %s") % self._schema)
 
     def to_json_schema(self, service, spec, direction):
         schema = self.get_cerberus_validator(service, direction).schema
@@ -283,7 +297,12 @@ class CerberusValidator(RestMethodParam):
 
 
 class CerberusListValidator(CerberusValidator):
-    def __init__(self, schema, min_items=None, max_items=None, unique_items=None):
+
+    def __init__(self,
+                 schema,
+                 min_items=None,
+                 max_items=None,
+                 unique_items=None):
         """
         :param schema: Cerberus list item schema
                        can be dict as cerberus schema, an instance of
@@ -311,7 +330,8 @@ class CerberusListValidator(CerberusValidator):
         return self._do_validate(service, data=result, direction="output")
 
     def to_openapi_query_parameters(self, service, spec):
-        raise NotImplementedError("List are not (?yet?) supported as query paramters")
+        raise NotImplementedError(
+            "List are not (?yet?) supported as query paramters")
 
     # pylint: disable=W8120,W8115
     def _do_validate(self, service, data, direction):
@@ -325,8 +345,7 @@ class CerberusListValidator(CerberusValidator):
                         "BadRequest item %(idx)s :%(errors)s",
                         idx=idx,
                         errors=validator.errors,
-                    )
-                )
+                    ))
             values.append(validator.document)
         if self._min_items is not None and len(values) < self._min_items:
             raise ExceptionClass(
@@ -334,20 +353,19 @@ class CerberusListValidator(CerberusValidator):
                     "BadRequest: Not enough items in the list (%(current)s < %(expected)s)",
                     current=len(values),
                     expected=self._min_items,
-                )
-            )
+                ))
         if self._max_items is not None and len(values) > self._max_items:
             raise ExceptionClass(
                 _(
                     "BadRequest: Too many items in the list (%(current)s > %(expected)s)",
                     current=len(values),
                     expected=self._max_items,
-                )
-            )
+                ))
         return values
 
     def to_json_schema(self, service, spec, direction):
-        cerberus_schema = self.get_cerberus_validator(service, direction).schema
+        cerberus_schema = self.get_cerberus_validator(service,
+                                                      direction).schema
         json_schema = cerberus_to_json(cerberus_schema)
         json_schema = {"type": "array", "items": json_schema}
         if self._min_items is not None:
@@ -360,12 +378,14 @@ class CerberusListValidator(CerberusValidator):
 
 
 class MultipartFormData(RestMethodParam):
+
     def __init__(self, parts):
         """This allows to create multipart/form-data endpoints.
         :param parts:  list of RestMethodParam
         """
         if not isinstance(parts, dict):
-            raise ValidationError(_("You must provide a dict of RestMethodParam"))
+            raise ValidationError(
+                _("You must provide a dict of RestMethodParam"))
         self._parts = parts
 
     def to_openapi_properties(self, service, spec, direction):
@@ -385,8 +405,10 @@ class MultipartFormData(RestMethodParam):
         res = {
             "multipart/form-data": {
                 "schema": {
-                    "type": "object",
-                    "properties": self.to_openapi_properties(service, spec, direction),
+                    "type":
+                    "object",
+                    "properties":
+                    self.to_openapi_properties(service, spec, direction),
                 }
             }
         }
@@ -404,30 +426,31 @@ class MultipartFormData(RestMethodParam):
                 # If the part is not Binary, it should be JSON
                 try:
                     json_param = json.loads(
-                        params[key]
-                    )  # multipart ony sends its parts as string
+                        params[key])  # multipart ony sends its parts as string
                 except json.JSONDecodeError as error:
                     raise ValidationError(
                         _(
                             "%(key)'s JSON content is malformed: %(error)s",
                             key=key,
                             error=error,
-                        )
-                    ) from error
+                        )) from error
                 param = part.from_params(service, json_param)
             params[key] = param
         return params
 
     def to_openapi_query_parameters(self, service, spec):
         raise NotImplementedError(
-            "MultipartFormData are not (?yet?) supported as query paramters"
-        )
+            "MultipartFormData are not (?yet?) supported as query paramters")
 
     def to_openapi_requestbody(self, service, spec):
         return {"content": self.to_json_schema(service, spec, "input")}
 
     def to_openapi_responses(self, service, spec):
-        return {"200": {"content": self.to_json_schema(service, spec, "output")}}
+        return {
+            "200": {
+                "content": self.to_json_schema(service, spec, "output")
+            }
+        }
 
     def to_response(self, service, result):
         raise NotImplementedError()

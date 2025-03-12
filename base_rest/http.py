@@ -93,9 +93,9 @@ def wrapJsonException(exception, include_description=False, extra_info=None, err
     for key, value in get_original_headers(environ=environ):
       if key != "Content-Type":
         _headers.append(key, value)
-    _headers.append(("Access-Control-Allow-Origin", "*"))
-    _headers.append(("Access-Control-Allow-Methods", "*"))
-    _headers.append(("Access-Control-Allow-Headers", "*"))
+    # _headers.append(("Access-Control-Allow-Origin", "*"))
+    # _headers.append(("Access-Control-Allow-Methods", "*"))
+    # _headers.append(("Access-Control-Allow-Headers", "*"))
     return _headers
 
   exception.get_body = get_body
@@ -249,7 +249,7 @@ class RestApiDispatcher(Dispatcher):
     if headers is None:
       headers = {}
     headers["Content-Type"] = "application/json"
-    headers['Access-Control-Allow-Origin'] = '*'
-    headers['Access-Control-Allow-Methods'] = '*'
-    headers['Access-Control-Allow-Headers'] = '*'
+    # headers['Access-Control-Allow-Origin'] = '*'
+    # headers['Access-Control-Allow-Methods'] = '*'
+    # headers['Access-Control-Allow-Headers'] = '*'
     return self.make_response(data, headers=headers, cookies=cookies)

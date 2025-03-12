@@ -196,7 +196,7 @@ class RestController(Controller):
     with self.service_component(service_name, collection=collection) as service:
       result = service.dispatch(method_name, *args, params=params)
       response = self.make_response(result)
-      response.headers['Access-Control-Allow-Origin'] = '*'
-      response.headers['Access-Control-Allow-Methods'] = '*'
-      response.headers['Access-Control-Allow-Headers'] = '*'
+      # response.headers['Access-Control-Allow-Origin'] = '*'
+      # response.headers['Access-Control-Allow-Methods'] = '*'
+      # response.headers['Access-Control-Allow-Headers'] = '*'
       return response
