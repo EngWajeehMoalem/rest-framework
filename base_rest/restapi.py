@@ -14,8 +14,8 @@ from .tools import ROUTING_DECORATOR_ATTR, cerberus_to_json
 
 
 def method(routes, input_param=None, output_param=None, **kw):
-    kw.setdefault("cors", '*')
-    """Decorator marking the decorated method as being a handler for
+  kw.setdefault("cors", '*')
+  """Decorator marking the decorated method as being a handler for
       REST requests. The method must be part of a component inheriting from
     ``base.rest.service``.
 
@@ -82,41 +82,39 @@ def method(routes, input_param=None, output_param=None, **kw):
 
     """
 
-    def decorator(f):
-        _routes = []
-        for paths, http_methods in routes:
-            if not isinstance(paths, list):
-                paths = [paths]
-            if not isinstance(http_methods, list):
-                http_methods = [http_methods]
-            if kw.get("cors") and "OPTIONS" not in http_methods:
-                http_methods.append("OPTIONS")
-            for m in http_methods:
-                _routes.append(([p for p in paths], m))
-        routing = {
-            "routes": _routes,
-            "input_param": input_param,
-            "output_param": output_param,
-        }
-        routing.update(kw)
+  def decorator(f):
+    _routes = []
+    for paths, http_methods in routes:
+      if not isinstance(paths, list):
+        paths = [paths]
+      if not isinstance(http_methods, list):
+        http_methods = [http_methods]
+      for m in http_methods:
+        _routes.append(([p for p in paths], m))
+    routing = {
+        "routes": _routes,
+        "input_param": input_param,
+        "output_param": output_param,
+    }
+    routing.update(kw)
 
-        @functools.wraps(f)
-        def response_wrap(*args, **kw):
-            response = f(*args, **kw)
-            return response
+    @functools.wraps(f)
+    def response_wrap(*args, **kw):
+      response = f(*args, **kw)
+      return response
 
-        setattr(response_wrap, ROUTING_DECORATOR_ATTR, routing)
-        response_wrap.original_func = f
-        return response_wrap
+    setattr(response_wrap, ROUTING_DECORATOR_ATTR, routing)
+    response_wrap.original_func = f
+    return response_wrap
 
-    return decorator
+  return decorator
 
 
 class RestMethodParam(abc.ABC):
 
-    @abc.abstractmethod
-    def from_params(self, service, params):
-        """
+  @abc.abstractmethod
+  def from_params(self, service, params):
+    """
         This method is called to process the parameters received at the
         controller. This method should validate and sanitize these paramaters.
         It could also be used to transform these parameters into the format
@@ -126,9 +124,9 @@ class RestMethodParam(abc.ABC):
         :return: Value into the format expected by the method
         """
 
-    @abc.abstractmethod
-    def to_response(self, service, result) -> http.Response:
-        """
+  @abc.abstractmethod
+  def to_response(self, service, result) -> http.Response:
+    """
         This method is called to prepare the result of the call to the method
         in a format suitable by the controller (http.Response or JSON dict).
         It's responsible for validating and sanitizing the result.
@@ -137,173 +135,157 @@ class RestMethodParam(abc.ABC):
         :return: http.Response or JSON dict
         """
 
-    @abc.abstractmethod
-    def to_openapi_query_parameters(self, service, spec) -> dict:
-        return {}
+  @abc.abstractmethod
+  def to_openapi_query_parameters(self, service, spec) -> dict:
+    return {}
 
-    @abc.abstractmethod
-    def to_openapi_requestbody(self, service, spec) -> dict:
-        return {}
+  @abc.abstractmethod
+  def to_openapi_requestbody(self, service, spec) -> dict:
+    return {}
 
-    @abc.abstractmethod
-    def to_openapi_responses(self, service, spec) -> dict:
-        return {}
+  @abc.abstractmethod
+  def to_openapi_responses(self, service, spec) -> dict:
+    return {}
 
-    @abc.abstractmethod
-    def to_json_schema(self, service, spec, direction) -> dict:
-        return {}
+  @abc.abstractmethod
+  def to_json_schema(self, service, spec, direction) -> dict:
+    return {}
 
 
 class BinaryData(RestMethodParam):
 
-    def __init__(self, mediatypes="*/*", required=False):
-        if not isinstance(mediatypes, list):
-            mediatypes = [mediatypes]
-        self._mediatypes = mediatypes
-        self._required = required
+  def __init__(self, mediatypes="*/*", required=False):
+    if not isinstance(mediatypes, list):
+      mediatypes = [mediatypes]
+    self._mediatypes = mediatypes
+    self._required = required
 
-    def to_json_schema(self, service, spec, direction):
-        return {
-            "type": "string",
-            "format": "binary",
-            "required": self._required,
-        }
+  def to_json_schema(self, service, spec, direction):
+    return {
+        "type": "string",
+        "format": "binary",
+        "required": self._required,
+    }
 
-    @property
-    def _binary_content_schema(self):
-        return {
-            mediatype: {
-                "schema": self.to_json_schema(None, None, None)
-            }
-            for mediatype in self._mediatypes
-        }
+  @property
+  def _binary_content_schema(self):
+    return {
+        mediatype: {
+            "schema": self.to_json_schema(None, None, None)
+        } for mediatype in self._mediatypes
+    }
 
-    def to_openapi_requestbody(self, service, spec):
-        return {"content": self._binary_content_schema}
+  def to_openapi_requestbody(self, service, spec):
+    return {"content": self._binary_content_schema}
 
-    def to_openapi_query_parameters(self, service, spec):
-        raise NotImplementedError(
-            "BinaryData are not (?yet?) supported as query paramters")
+  def to_openapi_query_parameters(self, service, spec):
+    raise NotImplementedError("BinaryData are not (?yet?) supported as query paramters")
 
-    def to_openapi_responses(self, service, spec):
-        return {"200": {"content": self._binary_content_schema}}
+  def to_openapi_responses(self, service, spec):
+    return {"200": {"content": self._binary_content_schema}}
 
-    def to_response(self, service, result):
-        if not isinstance(result, http.Response):
-            # The response has not been build by the called method...
-            result = self._to_http_response(result)
-        return result
+  def to_response(self, service, result):
+    if not isinstance(result, http.Response):
+      # The response has not been build by the called method...
+      result = self._to_http_response(result)
+    return result
 
-    def from_params(self, service, params):
-        return params
+  def from_params(self, service, params):
+    return params
 
-    def _to_http_response(self, result):
-        mediatype = self._mediatypes[0] if len(
-            self._mediatypes) == 1 else "*/*"
-        headers = [
-            ("Content-Type", mediatype),
-            ("X-Content-Type-Options", "nosniff"),
-            ("Content-Disposition", http.content_disposition("file")),
-            ("Content-Length", len(result)),
-        ]
-        return http.request.make_response(result, headers)
+  def _to_http_response(self, result):
+    mediatype = self._mediatypes[0] if len(self._mediatypes) == 1 else "*/*"
+    headers = [
+        ("Content-Type", mediatype),
+        ("X-Content-Type-Options", "nosniff"),
+        ("Content-Disposition", http.content_disposition("file")),
+        ("Content-Length", len(result)),
+    ]
+    return http.request.make_response(result, headers)
 
 
 class CerberusValidator(RestMethodParam):
 
-    def __init__(self, schema):
-        """
+  def __init__(self, schema):
+    """
 
         :param schema: can be dict as cerberus schema, an instance of
                        cerberus.Validator or a sting with the method name to
                        call on the service to get the schema or the validator
         """
-        self._schema = schema
+    self._schema = schema
 
-    def from_params(self, service, params):
-        validator = self.get_cerberus_validator(service, "input")
-        if validator.validate(params):
-            return validator.document
-        raise UserError(_("BadRequest %s") % validator.errors)
+  def from_params(self, service, params):
+    validator = self.get_cerberus_validator(service, "input")
+    if validator.validate(params):
+      return validator.document
+    raise UserError(_("BadRequest %s") % validator.errors)
 
-    def to_response(self, service, result):
-        validator = self.get_cerberus_validator(service, "output")
-        if validator.validate(result):
-            return validator.document
-        raise SystemError(_("Invalid Response %s") % validator.errors)
+  def to_response(self, service, result):
+    validator = self.get_cerberus_validator(service, "output")
+    if validator.validate(result):
+      return validator.document
+    raise SystemError(_("Invalid Response %s") % validator.errors)
 
-    def to_openapi_query_parameters(self, service, spec):
-        json_schema = self.to_json_schema(service, spec, "input")
-        parameters = []
-        for prop, spec in list(json_schema["properties"].items()):
-            params = {
-                "name": prop,
-                "in": "query",
-                "required": prop in json_schema["required"],
-                "allowEmptyValue": spec.get("nullable", False),
-                "default": spec.get("default"),
-            }
-            if spec.get("schema"):
-                params["schema"] = spec.get("schema")
-            else:
-                params["schema"] = {"type": spec["type"]}
-            if spec.get("items"):
-                params["schema"]["items"] = spec.get("items")
-            if "enum" in spec:
-                params["schema"]["enum"] = spec["enum"]
+  def to_openapi_query_parameters(self, service, spec):
+    json_schema = self.to_json_schema(service, spec, "input")
+    parameters = []
+    for prop, spec in list(json_schema["properties"].items()):
+      params = {
+          "name": prop,
+          "in": "query",
+          "required": prop in json_schema["required"],
+          "allowEmptyValue": spec.get("nullable", False),
+          "default": spec.get("default"),
+      }
+      if spec.get("schema"):
+        params["schema"] = spec.get("schema")
+      else:
+        params["schema"] = {"type": spec["type"]}
+      if spec.get("items"):
+        params["schema"]["items"] = spec.get("items")
+      if "enum" in spec:
+        params["schema"]["enum"] = spec["enum"]
 
-            parameters.append(params)
+      parameters.append(params)
 
-            if spec["type"] == "array":
-                # To correctly handle array into the url query string,
-                # the name must ends with []
-                params["name"] = params["name"] + "[]"
+      if spec["type"] == "array":
+        # To correctly handle array into the url query string,
+        # the name must ends with []
+        params["name"] = params["name"] + "[]"
 
-        return parameters
+    return parameters
 
-    def to_openapi_requestbody(self, service, spec):
-        json_schema = self.to_json_schema(service, spec, "input")
-        return {"content": {"application/json": {"schema": json_schema}}}
+  def to_openapi_requestbody(self, service, spec):
+    json_schema = self.to_json_schema(service, spec, "input")
+    return {"content": {"application/json": {"schema": json_schema}}}
 
-    def to_openapi_responses(self, service, spec):
-        json_schema = self.to_json_schema(service, spec, "output")
-        return {
-            "200": {
-                "content": {
-                    "application/json": {
-                        "schema": json_schema
-                    }
-                }
-            }
-        }
+  def to_openapi_responses(self, service, spec):
+    json_schema = self.to_json_schema(service, spec, "output")
+    return {"200": {"content": {"application/json": {"schema": json_schema}}}}
 
-    def get_cerberus_validator(self, service, direction):
-        assert direction in ("input", "output")
-        schema = self._schema
-        if isinstance(self._schema, str):
-            validator_component = service.component(usage="cerberus.validator")
-            schema = validator_component.get_validator_handler(
-                service, self._schema, direction)()
-        if isinstance(schema, Validator):
-            return schema
-        if isinstance(schema, dict):
-            return Validator(schema, purge_unknown=True)
-        raise Exception(
-            _("Unable to get cerberus schema from %s") % self._schema)
+  def get_cerberus_validator(self, service, direction):
+    assert direction in ("input", "output")
+    schema = self._schema
+    if isinstance(self._schema, str):
+      validator_component = service.component(usage="cerberus.validator")
+      schema = validator_component.get_validator_handler(service, self._schema, direction)()
+    if isinstance(schema, Validator):
+      return schema
+    if isinstance(schema, dict):
+      return Validator(schema, purge_unknown=True)
+    raise Exception(
+        _("Unable to get cerberus schema from %s") % self._schema)
 
-    def to_json_schema(self, service, spec, direction):
-        schema = self.get_cerberus_validator(service, direction).schema
-        return cerberus_to_json(schema)
+  def to_json_schema(self, service, spec, direction):
+    schema = self.get_cerberus_validator(service, direction).schema
+    return cerberus_to_json(schema)
 
 
 class CerberusListValidator(CerberusValidator):
 
-    def __init__(self,
-                 schema,
-                 min_items=None,
-                 max_items=None,
-                 unique_items=None):
-        """
+  def __init__(self, schema, min_items=None, max_items=None, unique_items=None):
+    """
         :param schema: Cerberus list item schema
                        can be dict as cerberus schema, an instance of
                        cerberus.Validator or a sting with the method name to
@@ -318,139 +300,129 @@ class CerberusListValidator(CerberusValidator):
                              contain unique items.
                              (Not enforced at validation time)
         """
-        super(CerberusListValidator, self).__init__(schema=schema)
-        self._min_items = min_items
-        self._max_items = max_items
-        self._unique_items = unique_items
+    super(CerberusListValidator, self).__init__(schema=schema)
+    self._min_items = min_items
+    self._max_items = max_items
+    self._unique_items = unique_items
 
-    def from_params(self, service, params):
-        return self._do_validate(service, data=params, direction="input")
+  def from_params(self, service, params):
+    return self._do_validate(service, data=params, direction="input")
 
-    def to_response(self, service, result):
-        return self._do_validate(service, data=result, direction="output")
+  def to_response(self, service, result):
+    return self._do_validate(service, data=result, direction="output")
 
-    def to_openapi_query_parameters(self, service, spec):
-        raise NotImplementedError(
-            "List are not (?yet?) supported as query paramters")
+  def to_openapi_query_parameters(self, service, spec):
+    raise NotImplementedError("List are not (?yet?) supported as query paramters")
 
-    # pylint: disable=W8120,W8115
-    def _do_validate(self, service, data, direction):
-        validator = self.get_cerberus_validator(service, direction)
-        values = []
-        ExceptionClass = UserError if direction == "input" else SystemError
-        for idx, p in enumerate(data):
-            if not validator.validate(p):
-                raise ExceptionClass(
-                    _(
-                        "BadRequest item %(idx)s :%(errors)s",
-                        idx=idx,
-                        errors=validator.errors,
-                    ))
-            values.append(validator.document)
-        if self._min_items is not None and len(values) < self._min_items:
-            raise ExceptionClass(
-                _(
-                    "BadRequest: Not enough items in the list (%(current)s < %(expected)s)",
-                    current=len(values),
-                    expected=self._min_items,
-                ))
-        if self._max_items is not None and len(values) > self._max_items:
-            raise ExceptionClass(
-                _(
-                    "BadRequest: Too many items in the list (%(current)s > %(expected)s)",
-                    current=len(values),
-                    expected=self._max_items,
-                ))
-        return values
+  # pylint: disable=W8120,W8115
+  def _do_validate(self, service, data, direction):
+    validator = self.get_cerberus_validator(service, direction)
+    values = []
+    ExceptionClass = UserError if direction == "input" else SystemError
+    for idx, p in enumerate(data):
+      if not validator.validate(p):
+        raise ExceptionClass(
+            _(
+                "BadRequest item %(idx)s :%(errors)s",
+                idx=idx,
+                errors=validator.errors,
+            ))
+      values.append(validator.document)
+    if self._min_items is not None and len(values) < self._min_items:
+      raise ExceptionClass(
+          _(
+              "BadRequest: Not enough items in the list (%(current)s < %(expected)s)",
+              current=len(values),
+              expected=self._min_items,
+          ))
+    if self._max_items is not None and len(values) > self._max_items:
+      raise ExceptionClass(
+          _(
+              "BadRequest: Too many items in the list (%(current)s > %(expected)s)",
+              current=len(values),
+              expected=self._max_items,
+          ))
+    return values
 
-    def to_json_schema(self, service, spec, direction):
-        cerberus_schema = self.get_cerberus_validator(service,
-                                                      direction).schema
-        json_schema = cerberus_to_json(cerberus_schema)
-        json_schema = {"type": "array", "items": json_schema}
-        if self._min_items is not None:
-            json_schema["minItems"] = self._min_items
-        if self._max_items is not None:
-            json_schema["maxItems"] = self._max_items
-        if self._unique_items is not None:
-            json_schema["uniqueItems"] = self._unique_items
-        return json_schema
+  def to_json_schema(self, service, spec, direction):
+    cerberus_schema = self.get_cerberus_validator(service, direction).schema
+    json_schema = cerberus_to_json(cerberus_schema)
+    json_schema = {"type": "array", "items": json_schema}
+    if self._min_items is not None:
+      json_schema["minItems"] = self._min_items
+    if self._max_items is not None:
+      json_schema["maxItems"] = self._max_items
+    if self._unique_items is not None:
+      json_schema["uniqueItems"] = self._unique_items
+    return json_schema
 
 
 class MultipartFormData(RestMethodParam):
 
-    def __init__(self, parts):
-        """This allows to create multipart/form-data endpoints.
+  def __init__(self, parts):
+    """This allows to create multipart/form-data endpoints.
         :param parts:  list of RestMethodParam
         """
-        if not isinstance(parts, dict):
-            raise ValidationError(
-                _("You must provide a dict of RestMethodParam"))
-        self._parts = parts
+    if not isinstance(parts, dict):
+      raise ValidationError(
+          _("You must provide a dict of RestMethodParam"))
+    self._parts = parts
 
-    def to_openapi_properties(self, service, spec, direction):
-        properties = {}
-        for key, part in self._parts.items():
-            properties[key] = part.to_json_schema(service, spec, direction)
-        return properties
+  def to_openapi_properties(self, service, spec, direction):
+    properties = {}
+    for key, part in self._parts.items():
+      properties[key] = part.to_json_schema(service, spec, direction)
+    return properties
 
-    def to_openapi_encoding(self):
-        encodings = {}
-        for key, part in self._parts.items():
-            if isinstance(part, BinaryData):
-                encodings[key] = {"contentType": ", ".join(part._mediatypes)}
-        return encodings
+  def to_openapi_encoding(self):
+    encodings = {}
+    for key, part in self._parts.items():
+      if isinstance(part, BinaryData):
+        encodings[key] = {"contentType": ", ".join(part._mediatypes)}
+    return encodings
 
-    def to_json_schema(self, service, spec, direction):
-        res = {
-            "multipart/form-data": {
-                "schema": {
-                    "type":
-                    "object",
-                    "properties":
-                    self.to_openapi_properties(service, spec, direction),
-                }
+  def to_json_schema(self, service, spec, direction):
+    res = {
+        "multipart/form-data": {
+            "schema": {
+                "type": "object",
+                "properties": self.to_openapi_properties(service, spec, direction),
             }
         }
-        encoding = self.to_openapi_encoding()
-        if len(encoding) > 0:
-            res["multipart/form-data"]["schema"]["encoding"] = encoding
-        return res
+    }
+    encoding = self.to_openapi_encoding()
+    if len(encoding) > 0:
+      res["multipart/form-data"]["schema"]["encoding"] = encoding
+    return res
 
-    def from_params(self, service, params):
-        for key, part in self._parts.items():
-            param = None
-            if isinstance(part, BinaryData):
-                param = part.from_params(service, params[key])
-            else:
-                # If the part is not Binary, it should be JSON
-                try:
-                    json_param = json.loads(
-                        params[key])  # multipart ony sends its parts as string
-                except json.JSONDecodeError as error:
-                    raise ValidationError(
-                        _(
-                            "%(key)'s JSON content is malformed: %(error)s",
-                            key=key,
-                            error=error,
-                        )) from error
-                param = part.from_params(service, json_param)
-            params[key] = param
-        return params
+  def from_params(self, service, params):
+    for key, part in self._parts.items():
+      param = None
+      if isinstance(part, BinaryData):
+        param = part.from_params(service, params[key])
+      else:
+        # If the part is not Binary, it should be JSON
+        try:
+          json_param = json.loads(params[key])  # multipart ony sends its parts as string
+        except json.JSONDecodeError as error:
+          raise ValidationError(
+              _(
+                  "%(key)'s JSON content is malformed: %(error)s",
+                  key=key,
+                  error=error,
+              )) from error
+        param = part.from_params(service, json_param)
+      params[key] = param
+    return params
 
-    def to_openapi_query_parameters(self, service, spec):
-        raise NotImplementedError(
-            "MultipartFormData are not (?yet?) supported as query paramters")
+  def to_openapi_query_parameters(self, service, spec):
+    raise NotImplementedError("MultipartFormData are not (?yet?) supported as query paramters")
 
-    def to_openapi_requestbody(self, service, spec):
-        return {"content": self.to_json_schema(service, spec, "input")}
+  def to_openapi_requestbody(self, service, spec):
+    return {"content": self.to_json_schema(service, spec, "input")}
 
-    def to_openapi_responses(self, service, spec):
-        return {
-            "200": {
-                "content": self.to_json_schema(service, spec, "output")
-            }
-        }
+  def to_openapi_responses(self, service, spec):
+    return {"200": {"content": self.to_json_schema(service, spec, "output")}}
 
-    def to_response(self, service, result):
-        raise NotImplementedError()
+  def to_response(self, service, result):
+    raise NotImplementedError()

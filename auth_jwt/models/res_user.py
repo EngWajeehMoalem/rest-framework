@@ -18,7 +18,7 @@ class ResUsers(models.Model):
     # Fetch JWT Secret and Expiration from system parameters
     jwt_secret = request.env['ir.config_parameter'].sudo().get_param('jwt_secret', 'default_secret')
     jwt_expiration = int(request.env['ir.config_parameter'].sudo().get_param(
-        'jwt_expiration', 3600))
+        'jwt_expiration', 36000))
 
     # Create JWT payload
     payload = {
@@ -64,6 +64,12 @@ class ResUsers(models.Model):
 
     return {"token": token, "user_id": user.id, "login": user.login, "name": user.name}
 
-
-
-  
+  @api.model
+  def jwt_refresh_token(self, user_id):
+    """Authenticate user and return JWT token."""
+    user = self.sudo().search([('id', '=', user_id)], limit=1)
+    if not user:
+      raise AccessDenied(_("Invalid login or password"))
+    # Generate JWT token for the authenticated user
+    token = self.encode_jwt_token(user.id)
+    return {"token": token, "user_id": user.id, "login": user.login, "name": user.name}
