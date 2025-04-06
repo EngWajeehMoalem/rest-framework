@@ -5,7 +5,7 @@
     "name": "Base Rest Datamodel",
     "summary": """
         Pydantic binding for base_rest""",
-    "version": "17.0.0.0.0",
+    "version": "18.0.0.0.0",
     "license": "LGPL-3",
     "author": "ACSONE SA/NV,Odoo Community Association (OCA)",
     "website": "https://github.com/OCA/rest-framework",
