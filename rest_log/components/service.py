@@ -23,11 +23,14 @@ from ..exceptions import (
 
 def json_dump(data):
     """Encode data to JSON as we like."""
-    return json.dumps(data,
-                      cls=JSONEncoder,
-                      indent=4,
-                      ensure_ascii=False,
-                      sort_keys=True)
+    try:
+        return json.dumps(data,
+                          cls=JSONEncoder,
+                          indent=4,
+                          ensure_ascii=False,
+                          sort_keys=True)
+    except TypeError:
+        return data
 
 
 class BaseRESTService(AbstractComponent):
