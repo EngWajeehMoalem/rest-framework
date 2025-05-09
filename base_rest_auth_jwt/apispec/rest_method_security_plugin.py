@@ -8,7 +8,7 @@ class RestMethodSecurityPlugin(BasePlugin):
     self._service = service
 
   def init_spec(self, spec):
-    super(RestMethodSecurityPlugin, self).init_spec(spec)
+    x = super(RestMethodSecurityPlugin, self).init_spec(spec)
     self.spec = spec
     self.openapi_version = spec.openapi_version
     jwt_scheme = {
@@ -21,7 +21,7 @@ class RestMethodSecurityPlugin(BasePlugin):
     spec.components.security_scheme("jwt", jwt_scheme)
 
   def operation_helper(self, path=None, operations=None, **kwargs):
-    routing = kwargs.get("routing")
+    routing = kwargs.get("original_routing")
     if not routing:
       super(RestMethodSecurityPlugin, self).operation_helper(path, operations, **kwargs)
     if not operations:
