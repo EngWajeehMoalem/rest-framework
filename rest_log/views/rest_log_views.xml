@@ -3,7 +3,7 @@
         <field name="name">rest.log tree</field>
         <field name="model">rest.log</field>
         <field name="arch" type="xml">
-            <tree decoration-danger="state == 'failed'">
+            <list decoration-danger="state == 'failed'">
                 <field name="collection" optional="hide" />
                 <field name="collection_id" optional="hide" />
                 <field name="create_uid" />
@@ -14,7 +14,7 @@
                 <field name="exception_name" />
                 <field name="exception_message" />
                 <field name="severity" />
-            </tree>
+            </list>
         </field>
     </record>
     <record id="rest_log_form_view" model="ir.ui.view">
