@@ -2,25 +2,25 @@
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/LGPL).
 
 import logging
+from collections.abc import Callable
 from functools import partial
 from itertools import chain
-from typing import Any, Awaitable, Callable, Dict, List, Tuple, Type, Union
+from typing import Any
 
 from a2wsgi import ASGIMiddleware
 from starlette.middleware import Middleware
+from starlette.routing import Mount
 
-import odoo
 from odoo import _, api, exceptions, fields, models, tools
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, FastAPI
 
-from .. import dependencies, error_handlers
+from .. import dependencies
 
 _logger = logging.getLogger(__name__)
 
 
 class FastapiEndpoint(models.Model):
-
     _name = "fastapi.endpoint"
     _inherit = "endpoint.route.sync.mixin"
     _description = "FastAPI Endpoint"
@@ -54,6 +54,16 @@ class FastapiEndpoint(models.Model):
         store=True,
         readonly=False,
         domain="[('user_ids', 'in', user_id)]",
+    )
+    save_http_session = fields.Boolean(
+        string="Save HTTP Session",
+        help="Whether session should be saved into the session store. This is "
+        "required if for example you use the Odoo's authentication mechanism. "
+        "Oherwise chance are high that you don't need it and could turn off "
+        "this behaviour. Additionaly turning off this option will prevent useless "
+        "IO operation when storing and reading the session on the disk and prevent "
+        "unexpecteed disk space consumption.",
+        default=True,
     )
 
     @api.depends("root_path")
@@ -111,7 +121,7 @@ class FastapiEndpoint(models.Model):
         return tuple(res)
 
     @api.model
-    def _routing_impacting_fields(self) -> Tuple[str]:
+    def _routing_impacting_fields(self) -> tuple[str]:
         """The list of fields requiring to refresh the mount point of the pp
         into odoo if modified"""
         return ("root_path",)
@@ -134,11 +144,11 @@ class FastapiEndpoint(models.Model):
         if refresh_fastapi_app:
             self._reset_app()
         if "user_id" in vals:
-            self.get_uid.clear_cache(self)
+            self.env.registry.clear_cache()
         return False
 
     @api.model
-    def _fastapi_app_fields(self) -> List[str]:
+    def _fastapi_app_fields(self) -> list[str]:
         """The list of fields requiring to refresh the fastapi app if modified"""
         return []
 
@@ -173,21 +183,22 @@ class FastapiEndpoint(models.Model):
         return {
             "type": "fastapi",
             "auth": "public",
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
             "routes": [
                 f"{self.root_path}/",
                 f"{self.root_path}/<path:application_path>",
             ],
+            "save_session": self.save_http_session,
             # csrf ?????
         }
 
-    def _endpoint_registry_route_unique_key(self, routing: Dict[str, Any]):
+    def _endpoint_registry_route_unique_key(self, routing: dict[str, Any]):
         route = "|".join(routing["routes"])
         path = route.replace(self.root_path, "")
         return f"{self._name}:{self.id}:{path}"
 
     def _reset_app(self):
-        self.get_app.clear_cache(self)
+        self.env.registry.clear_cache()
 
     @api.model
     @tools.ormcache("root_path")
@@ -201,7 +212,23 @@ class FastapiEndpoint(models.Model):
             return None
         app = FastAPI()
         app.mount(record.root_path, record._get_app())
+        self._clear_fastapi_exception_handlers(app)
         return ASGIMiddleware(app)
+
+    def _clear_fastapi_exception_handlers(self, app: FastAPI) -> None:
+        """
+        Clear the exception handlers of the given fastapi app.
+
+        This method is used to ensure that the exception handlers are handled
+        by odoo and not by fastapi. We therefore need to remove all the handlers
+        added by default when instantiating a FastAPI app. Since apps can be
+        mounted recursively, we need to apply this method to all the apps in the
+        mounted tree.
+        """
+        app.exception_handlers = {}
+        for route in app.routes:
+            if isinstance(route, Mount):
+                self._clear_fastapi_exception_handlers(route.app)
 
     @api.model
     @tools.ormcache("root_path")
@@ -216,49 +243,15 @@ class FastapiEndpoint(models.Model):
         for router in self._get_fastapi_routers():
             app.include_router(router=router)
         app.dependency_overrides.update(self._get_app_dependencies_overrides())
-        for exception, handler in self._get_app_exception_handlers().items():
-            app.add_exception_handler(exception, handler)
         return app
 
-    def _get_app_dependencies_overrides(self) -> Dict[Callable, Callable]:
+    def _get_app_dependencies_overrides(self) -> dict[Callable, Callable]:
         return {
             dependencies.fastapi_endpoint_id: partial(lambda a: a, self.id),
             dependencies.company_id: partial(lambda a: a, self.company_id.id),
         }
 
-    def _get_app_exception_handlers(
-        self,
-    ) -> Dict[
-        Union[int, Type[Exception]],
-        Callable[[Request, Exception], Union[Response, Awaitable[Response]]],
-    ]:
-        """Return a dict of exception handlers to register on the app
-
-        The key is the exception class or status code to handle.
-        The value is the handler function.
-
-        If you need to register your own handler, you can do it by overriding
-        this method and calling super(). Changes done in this way will be applied
-        to all the endpoints. If you need to register a handler only for a specific
-        endpoint, you can do it by overriding the _get_app_exception_handlers method
-        and conditionally returning your specific handlers only for the endpoint
-        you want according to the self.app value.
-
-        Be careful to not forget to roll back the transaction when you implement
-        your own error handler. If you don't, the transaction will be committed
-        and the changes will be applied to the database.
-        """
-        self.ensure_one()
-        return {
-            Exception: error_handlers._odoo_exception_handler,
-            HTTPException: error_handlers._odoo_http_exception_handler,
-            odoo.exceptions.UserError: error_handlers._odoo_user_error_handler,
-            odoo.exceptions.AccessError: error_handlers._odoo_access_error_handler,
-            odoo.exceptions.MissingError: error_handlers._odoo_missing_error_handler,
-            odoo.exceptions.ValidationError: error_handlers._odoo_validation_error_handler,
-        }
-
-    def _prepare_fastapi_app_params(self) -> Dict[str, Any]:
+    def _prepare_fastapi_app_params(self) -> dict[str, Any]:
         """Return the params to pass to the Fast API app constructor"""
         return {
             "title": self.name,
@@ -267,17 +260,17 @@ class FastapiEndpoint(models.Model):
             "dependencies": self._get_fastapi_app_dependencies(),
         }
 
-    def _get_fastapi_routers(self) -> List[APIRouter]:
+    def _get_fastapi_routers(self) -> list[APIRouter]:
         """Return the api routers to use for the instance.
 
         This method must be implemented when registering a new api type.
         """
         return []
 
-    def _get_fastapi_app_middlewares(self) -> List[Middleware]:
+    def _get_fastapi_app_middlewares(self) -> list[Middleware]:
         """Return the middlewares to use for the fastapi app."""
         return []
 
-    def _get_fastapi_app_dependencies(self) -> List[Depends]:
+    def _get_fastapi_app_dependencies(self) -> list[Depends]:
         """Return the dependencies to use for the fastapi app."""
         return [Depends(dependencies.accept_language)]
