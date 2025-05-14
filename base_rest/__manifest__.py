@@ -6,7 +6,7 @@
     "summary": """
         Develop your own high level REST APIs for Odoo thanks to this addon.
         """,
-    "version": "17.0.0.0.1",
+    "version": "18.0.0.0.1",
     "development_status": "Beta",
     "license": "LGPL-3",
     "author": "ACSONE SA/NV, " "Odoo Community Association (OCA)",
