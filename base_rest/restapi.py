@@ -14,7 +14,6 @@ from .tools import ROUTING_DECORATOR_ATTR, cerberus_to_json
 
 
 def method(routes, input_param=None, output_param=None, **kw):
-  kw.setdefault("cors", '*')
   """Decorator marking the decorated method as being a handler for
       REST requests. The method must be part of a component inheriting from
     ``base.rest.service``.
