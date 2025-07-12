@@ -136,7 +136,9 @@ class RestApiDispatcher(Dispatcher):
     httprequest = self.request.httprequest
     self.request.params = args
     if httprequest.mimetype == "application/json":
-      data = httprequest.get_data().decode(httprequest.charset)
+      # Get charset from content_type or default to utf-8
+      charset = getattr(httprequest, 'charset', None) or 'utf-8'
+      data = httprequest.get_data().decode(charset)
       if data:
         try:
           self.request.params.update(json.loads(data))
