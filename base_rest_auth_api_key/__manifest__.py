@@ -6,7 +6,7 @@
         Base Rest: Add support for the auth_api_key security policy into the
         openapi documentation""",
     "version":
-        "18.0.1.0.0",
+        "19.0.1.0.0",
     "license":
         "LGPL-3",
     "author":
