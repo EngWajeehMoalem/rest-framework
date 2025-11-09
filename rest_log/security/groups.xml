@@ -2,7 +2,7 @@
     <record id="group_rest_log_manager" model="res.groups">
         <field name="name">REST Log Manager</field>
         <field
-            name="users"
+            name="user_ids"
             eval="[(4, ref('base.user_root')),(4, ref('base.user_admin'))]"
         />
     </record>

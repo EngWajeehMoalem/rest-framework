@@ -17,6 +17,7 @@ from werkzeug.routing import Map, Rule
 
 import odoo
 from odoo import http, models
+from odoo.modules.module_graph import ModuleGraph
 
 from odoo.addons.component.core import WorkContext
 
@@ -188,8 +189,7 @@ class RestServiceRegistration(models.AbstractModel):
         # dependencies to ensure that controllers defined in a more
         # specialized addon and overriding more generic one takes precedences
         # on the generic one into the registry
-        graph = odoo.modules.graph.Graph()
-        graph.add_module(self.env.cr, "base")
+        graph = ModuleGraph(self.env.cr)
 
         query = "SELECT name " "FROM ir_module_module " "WHERE state IN %s "
         params = [tuple(states)]
@@ -199,7 +199,8 @@ class RestServiceRegistration(models.AbstractModel):
         self.env.cr.execute(query, params)
 
         module_list = [name for (name,) in self.env.cr.fetchall() if name not in graph]
-        graph.add_modules(self.env.cr, module_list)
+        # Add base module and all other modules
+        graph.extend(["base"] + module_list)
 
         for module in graph:
             self.load_services(module.name, services_registry)

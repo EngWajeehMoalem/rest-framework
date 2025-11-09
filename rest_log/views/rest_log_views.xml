@@ -128,57 +128,55 @@
                     name="filter_severity_functional"
                     domain="[('severity', '=', 'functional')]"
                 />
-                <group expand="0" string="Group By">
-                    <filter
-                        string="Collection"
-                        name="by_collection"
-                        domain="[]"
-                        context="{'group_by': 'collection'}"
-                    />
-                    <filter
-                        string="User"
-                        name="by_user"
-                        domain="[]"
-                        context="{'group_by': 'create_uid'}"
-                    />
-                    <filter
-                        string="Request URL"
-                        name="groupby_request_url"
-                        domain="[]"
-                        context="{'group_by': 'request_url'}"
-                    />
-                    <filter
-                        string="Status"
-                        name="status"
-                        domain="[]"
-                        context="{'group_by': 'state'}"
-                    />
-                    <filter
-                        string="Exception"
-                        name="exception_name"
-                        domain="[]"
-                        context="{'group_by': 'exception_name'}"
-                    />
-                    <filter
-                        string="Exception message"
-                        name="exception_message"
-                        domain="[]"
-                        context="{'group_by': 'exception_message'}"
-                    />
-                    <filter
-                        string="Severity"
-                        name="severity"
-                        domain="[]"
-                        context="{'group_by': 'severity'}"
-                    />
-                    <filter
-                        string="Date"
-                        name="groupby_create_date"
-                        domain="[]"
-                        context="{'group_by': 'create_date'}"
-                        groups="base.group_no_one"
-                    />
-                </group>
+                <filter
+                    string="Collection"
+                    name="by_collection"
+                    domain="[]"
+                    context="{'group_by': 'collection'}"
+                />
+                <filter
+                    string="User"
+                    name="by_user"
+                    domain="[]"
+                    context="{'group_by': 'create_uid'}"
+                />
+                <filter
+                    string="Request URL"
+                    name="groupby_request_url"
+                    domain="[]"
+                    context="{'group_by': 'request_url'}"
+                />
+                <filter
+                    string="Status"
+                    name="status"
+                    domain="[]"
+                    context="{'group_by': 'state'}"
+                />
+                <filter
+                    string="Exception"
+                    name="exception_name"
+                    domain="[]"
+                    context="{'group_by': 'exception_name'}"
+                />
+                <filter
+                    string="Exception message"
+                    name="exception_message"
+                    domain="[]"
+                    context="{'group_by': 'exception_message'}"
+                />
+                <filter
+                    string="Severity"
+                    name="severity"
+                    domain="[]"
+                    context="{'group_by': 'severity'}"
+                />
+                <filter
+                    string="Date"
+                    name="groupby_create_date"
+                    domain="[]"
+                    context="{'group_by': 'create_date'}"
+                    groups="base.group_no_one"
+                />
             </search>
         </field>
     </record>

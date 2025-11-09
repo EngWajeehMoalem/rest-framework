@@ -29,7 +29,7 @@ from odoo.exceptions import (
     ValidationError,
 )
 from odoo.http import (
-    CSRF_FREE_METHODS,
+    SAFE_HTTP_METHODS,
     MISSING_CSRF_WARNING,
     Dispatcher,
     SessionExpiredException,
@@ -77,7 +77,9 @@ def wrapJsonException(exception, include_description=False, extra_info=None, err
   def get_body(environ=None, scope=None):
     res = {"code": exception.code, "name": escape(exception.name)}
     description = exception.get_description(environ)
-    if config.get_misc("base_rest", "dev_mode"):
+    # Return exception info if in development mode (checking for --dev option)
+    dev_mode = config.get('dev_mode') or False
+    if dev_mode:
       # return exception info only if base_rest is in dev_mode
       res.update({"traceback": exception.traceback, "description": description})
     elif include_description:
@@ -161,7 +163,7 @@ class RestApiDispatcher(Dispatcher):
     params = dict(self.request.get_http_params(), **args)
 
     # Check for CSRF token for relevant requests
-    if (self.request.httprequest.method not in CSRF_FREE_METHODS and
+    if (self.request.httprequest.method not in SAFE_HTTP_METHODS and
         endpoint.routing.get("csrf", True)):
       token = params.pop("csrf_token", None)
       if not self.request.validate_csrf(token):

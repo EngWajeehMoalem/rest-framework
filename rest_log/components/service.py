@@ -8,8 +8,9 @@ import traceback
 
 from werkzeug.urls import url_encode, url_join
 
-from odoo import exceptions, registry
+from odoo import exceptions
 from odoo.http import request
+from odoo.orm.registry import Registry
 
 from odoo.addons.base_rest.http import JSONEncoder
 from odoo.addons.component.core import AbstractComponent
@@ -94,7 +95,7 @@ class BaseRESTService(AbstractComponent):
         tb = traceback.format_exc()
         # TODO: how to test this? Cannot rollback nor use another cursor
         self.env.cr.rollback()
-        with registry(self.env.cr.dbname).cursor() as cr:
+        with Registry(self.env.cr.dbname).cursor() as cr:
             env = self.env(cr=cr)
             log_entry = self._log_call_in_db(
                 env,
