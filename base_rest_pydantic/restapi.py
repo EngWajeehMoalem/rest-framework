@@ -78,29 +78,58 @@ class PydanticModel(restapi.RestMethodParam):
   def to_openapi_query_parameters(self, servic, spec):
     json_schema = self._model_cls.model_json_schema()
     parameters = []
-    for prop, spec in list(json_schema["properties"].items()):
-      params = {
-          "name": prop,
-          "in": "query",
-          "required": prop in json_schema.get("required", []),
-          "allowEmptyValue": spec.get("nullable", False),
-          "default": spec.get("default"),
-      }
-      if spec.get("schema"):
-        params["schema"] = spec.get("schema")
-      else:
-        params["schema"] = {"type": spec["type"]}
-      if spec.get("items"):
-        params["schema"]["items"] = spec.get("items")
-      if "enum" in spec:
-        params["schema"]["enum"] = spec["enum"]
 
-      parameters.append(params)
+    for prop, prop_spec in json_schema.get("properties", {}).items():
 
-      if spec["type"] == "array":
-        # To correctly handle array into the url query string,
-        # the name must ends with []
-        params["name"] = params["name"] + "[]"
+        params = {
+            "name": prop,
+            "in": "query",
+            "required": prop in json_schema.get("required", []),
+            "default": prop_spec.get("default"),
+        }
+
+        schema = {}
+
+        # -------------------------
+        # Handle type / unions
+        # -------------------------
+        if "type" in prop_spec:
+            schema["type"] = prop_spec["type"]
+
+        elif "anyOf" in prop_spec:
+            # Pydantic v2 nullable/Union handling
+            schema["anyOf"] = prop_spec["anyOf"]
+
+        elif "oneOf" in prop_spec:
+            schema["oneOf"] = prop_spec["oneOf"]
+
+        elif "$ref" in prop_spec:
+            schema["$ref"] = prop_spec["$ref"]
+
+        # -------------------------
+        # Enum support
+        # -------------------------
+        if "enum" in prop_spec:
+            schema["enum"] = prop_spec["enum"]
+
+        # -------------------------
+        # Array support
+        # -------------------------
+        if prop_spec.get("type") == "array" and "items" in prop_spec:
+            schema["items"] = prop_spec["items"]
+
+        # -------------------------
+        # Attach schema safely
+        # -------------------------
+        params["schema"] = schema if schema else prop_spec
+
+        # -------------------------
+        # Array query naming convention
+        # -------------------------
+        if prop_spec.get("type") == "array":
+            params["name"] = f"{params['name']}[]"
+
+        parameters.append(params)
 
     return parameters
 
